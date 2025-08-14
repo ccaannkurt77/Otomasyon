@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Restoran Sipariş Sistemi</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f8f8f8; }
+    .container { max-width: 900px; margin: 40px auto; padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 0 10px #ddd; }
+    h1 { text-align: center; }
+    .category { margin-bottom: 30px; }
+    .category-title { font-size: 1.3em; margin-bottom: 8px; color: #26547c;}
+    .products { display: flex; flex-wrap: wrap; gap: 16px; }
+    .product-card {
+      background: #f5f5f5; border-radius: 8px; padding: 16px 10px; width: 210px;
+      box-shadow: 0 2px 8px #eee;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .product-title { font-weight: bold; margin-bottom: 5px; }
+    .product-price {
+      color: #e63946; font-weight: bold; font-size: 1.15em; margin-bottom: 10px;
+      letter-spacing: 1px;
+      text-shadow: 1px 1px 1px #fff, 0 0 5px #e63946aa;
+    }
+    .siparis-btn {
+      background: #43aa8b; color: #fff; border: none; border-radius: 5px; padding: 7px 18px;
+      cursor: pointer; font-size: 1em; transition: background 0.2s;
+    }
+    .siparis-btn:hover { background: #2d6a4f; }
+    .orders-section { background: #f1faee; border-radius: 10px; padding: 16px; margin-top: 25px; }
+    .orders-title { font-size: 1.1em; margin-bottom: 10px; }
+    .order-list { margin-bottom: 10px; }
+    .order-item { padding: 3px 0; border-bottom: 1px solid #ddd; }
+    .order-total { font-weight: bold; margin-top: 10px; }
+    .clear-btn {
+      background: #e63946; color: #fff; border: none; border-radius: 6px; padding: 7px 16px; font-size: 1em; margin-top: 12px; cursor: pointer;
+    }
+    .clear-btn:hover { background: #b2182b; }
+    .action-btns { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap;}
+    .receipt-form {
+      margin: 16px 0 10px 0;
+      background: #f7f7f7;
+      padding: 14px 18px;
+      border-radius: 8px;
+      box-shadow: 0 0 6px #eee;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      align-items: center;
+    }
+    .receipt-form label {
+      font-weight: bold;
+      margin-right: 5px;
+      color: #26547c;
+    }
+    .receipt-form input {
+      border: 1px solid #ccc; border-radius: 4px; padding: 6px 10px;
+      margin-right: 10px;
+      font-size: 1em;
+    }
+    @media (max-width: 700px) {
+      .products { flex-direction: column; gap: 10px;}
+      .product-card { width: 100%; }
+      .container { padding: 8px; }
+      .receipt-form { flex-direction: column; gap: 10px;}
+      .action-btns { flex-direction: column; gap: 7px;}
+    }
+    /* Modal */
+    #poolModal {
+      display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4); z-index:1000;
+    }
+    #poolModalContent {
+      background:#fff; max-width:500px; margin:60px auto; padding:20px; border-radius:12px; box-shadow:0 0 20px #888;
+    }
+    #poolList { max-height:380px; overflow-y:auto;}
+    /* Havuz Temizleme Modalı */
+    #poolClearPasswordModal {
+      display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4); z-index:2001;
+    }
+    /* Giriş ekranı */
+    #loginModal {
+      display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.55); z-index:3000;
+    }
+    #loginModalContent {
+      background:#fff; max-width:340px; margin:100px auto; padding:28px 22px 22px 22px; border-radius:12px; box-shadow:0 0 20px #888;
+    }
+    #userStatusBar {
+      background:#26547c; color:#fff; padding:7px 20px; border-radius:10px;
+      display:inline-block; margin:8px 0 0 0; font-size:1em; font-weight:bold;
+    }
+  </style>
+</head>
+<body>
+  <!-- Giriş Modalı -->
+  <div id="loginModal">
+    <div id="loginModalContent">
+      <h2 style="text-align:center; margin-bottom:10px; color:#26547c;">Kullanıcı Girişi</h2>
+      <form id="loginForm" onsubmit="event.preventDefault(); loginUser();">
+        <label for="username" style="font-weight:bold; color:#457b9d;">Kullanıcı Adı:</label>
+        <input type="text" id="username" style="width:100%;margin-bottom:10px;padding:7px;" autofocus required>
+        <label for="userpass" style="font-weight:bold; color:#457b9d;">Şifre:</label>
+        <input type="password" id="userpass" style="width:100%;margin-bottom:14px;padding:7px;" required>
+        <button type="submit" class="siparis-btn" style="width:100%;">Giriş Yap</button>
+      </form>
+      <div id="loginError" style="color:#e63946; text-align:center; margin-top:10px; display:none;"></div>
+      <div style="margin-top:24px; font-size:0.98em; color:#333;">
+        <b>Kullanıcılar:</b>
+        <ul style="padding-left:20px; margin:7px 0 0 0;">
+          <li><b>Mehmet</b> - Şifre: <b>6699</b></li>
+          <li><b>Murat</b> - Şifre: <b>2233</b></li>
+          <li><b>Can</b> - Şifre: <b>1122</b></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="container" id="mainContainer" style="display:none;">
+    <h1>Restoran Sipariş Sistemi</h1>
+    <div id="userStatusBar"></div>
+
+    <!-- Kategorilere göre ayrılmış ürün bölümleri -->
+    <div class="category">
+      <div class="category-title">Tavuk Pilavlar</div>
+      <div class="products">
+        <div class="product-card">
+          <span class="product-title">Normal Porsiyon (Nohutlu-Tavuklu)</span>
+          <span class="product-price">100 TL</span>
+          <button class="siparis-btn" onclick="addOrder('Normal Porsiyon (Nohutlu-Tavuklu)', 100)">Sipariş Ver</button>
+        </div>
+        <div class="product-card">
+          <span class="product-title">Tam Porsiyon (Nohutlu-Tavuklu)</span>
+          <span class="product-price">140 TL</span>
+          <button class="siparis-btn" onclick="addOrder('Tam Porsiyon (Nohutlu-Tavuklu)', 140)">Sipariş Ver</button>
+        </div>
+      </div>
+    </div>
+    <div class="category">
+      <div class="category-title">Tantuniler</div>
+      <div class="products">
+        <div class="product-card">
+          <span class="product-title">Tavuk Tantuni + Ayran</span>
+          <span class="product-price">120 TL</span>
+          <button class="siparis-btn" onclick="addOrder('Tavuk Tantuni + Ayran', 120)">Sipariş Ver</button>
+        </div>
+        <div class="product-card">
+          <span class="product-title">Tavuk Tantuni 3 Çeyrek + Ayran</span>
+          <span class="product-price">180 TL</span>
+          <button class="siparis-btn" onclick="addOrder('Tavuk Tantuni 3 Çeyrek + Ayran', 180)">Sipariş Ver</button>
+        </div>
+        <div class="product-card">
+          <span class="product-title">Tam Tavuk Tantuni + Ayran</span>
+          <span class="product-price">240 TL</span>
+          <button class="siparis-btn" onclick="addOrder('Tam Tavuk Tantuni + Ayran', 240)">Sipariş Ver</button>
+        </div>
+        <div class="product-card">
+          <span class="product-title">Et Tantuni + Ayran</span>
+          <span class="product-price">180 TL</span>
+          <button class="siparis-btn" onclick="addOrder('Et Tantuni + Ayran', 180)">Sipariş Ver</button>
+        </div>
+        <div class="product-card">
+          <span class="product-title">Et Tantuni 3 Çeyrek + Ayran</span>
+          <span class="product-price">240 TL</span>
+          <button class="siparis-btn" onclick="addOrder('Et Tantuni 3 Çeyrek + Ayran', 240)">Sipariş Ver</button>
+        </div>
+        <div class="product-card">
+          <span class="product-title">Et Tantuni Tam + Ayran</span>
+          <span class="product-price">360 TL</span>
+          <button class="siparis-btn" onclick="addOrder('Et Tantuni Tam + Ayran', 360)">Sipariş Ver</button>
+        </div>
+      </div>
+    </div>
+    <div class="category">
+      <div class="category-title">Menüler</div>
+      <div class="products">
+        <div class="product-card">
+          <span class="product-title">Kuru Fasulye Menü</span>
+          <span class="product-price">220 TL</span>
+          <button class="siparis-btn" onclick="addOrder('Kuru Fasulye Menü', 220)">Sipariş Ver</button>
+        </div>
+        <div class="product-card">
+          <span class="product-title">İzmir Köfte Menü</span>
+          <span class="product-price">220 TL</span>
+          <button class="siparis-btn" onclick="addOrder('İzmir Köfte Menü', 220)">Sipariş Ver</button>
+        </div>
+        <div class="product-card">
+          <span class="product-title">Sporcu Menü (Kızartma)</span>
+          <span class="product-price">220 TL</span>
+          <button class="siparis-btn" onclick="addOrder('Sporcu Menü (Kızartma)', 220)">Sipariş Ver</button>
+        </div>
+        <div class="product-card">
+          <span class="product-title">Anne Köfte Menü</span>
+          <span class="product-price">220 TL</span>
+          <button class="siparis-btn" onclick="addOrder('Anne Köfte Menü', 220)">Sipariş Ver</button>
+        </div>
+      </div>
+    </div>
+    <div class="category">
+      <div class="category-title">Patsolar</div>
+      <div class="products">
+        <div class="product-card">
+          <span class="product-title">Patates Patso</span>
+          <span class="product-price">140 TL</span>
+          <button class="siparis-btn" onclick="addOrder('Patates Patso', 140)">Sipariş Ver</button>
+        </div>
+        <div class="product-card">
+          <span class="product-title">Sosisli Patso</span>
+          <span class="product-price">140 TL</span>
+          <button class="siparis-btn" onclick="addOrder('Sosisli Patso', 140)">Sipariş Ver</button>
+        </div>
+      </div>
+    </div>
+    <div class="category">
+      <div class="category-title">Piyaz</div>
+      <div class="products">
+        <div class="product-card">
+          <span class="product-title">Piyaz</span>
+          <span class="product-price">80 TL</span>
+          <button class="siparis-btn" onclick="addOrder('Piyaz', 80)">Sipariş Ver</button>
+        </div>
+      </div>
+    </div>
+    <div class="category">
+      <div class="category-title">İçecekler</div>
+      <div class="products">
+        <div class="product-card">
+          <span class="product-title">Ayran Küçük</span>
+          <span class="product-price">25 TL</span>
+          <button class="siparis-btn" onclick="addOrder('Ayran Küçük', 25)">Sipariş Ver</button>
+        </div>
+        <div class="product-card">
+          <span class="product-title">Ayran Büyük</span>
+          <span class="product-price">40 TL</span>
+          <button class="siparis-btn" onclick="addOrder('Ayran Büyük', 40)">Sipariş Ver</button>
+        </div>
+        <div class="product-card">
+          <span class="product-title">Soda/Gazoz</span>
+          <span class="product-price">20 TL</span>
+          <button class="siparis-btn" onclick="addOrder('Soda/Gazoz', 20)">Sipariş Ver</button>
+        </div>
+        <div class="product-card">
+          <span class="product-title">Meşrubatlar</span>
+          <span class="product-price">50 TL</span>
+          <button class="siparis-btn" onclick="addOrder('Meşrubatlar', 50)">Sipariş Ver</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sipariş Fişi Bölümü -->
+    <div class="orders-section">
+      <div class="orders-title">📋 Siparişler</div>
+      <form class="receipt-form" id="receiptForm" onsubmit="event.preventDefault();">
+        <div>
+          <label for="isim">İsim:</label>
+          <input type="text" id="isim" name="isim" required>
+        </div>
+        <div>
+          <label for="adres">Adres:</label>
+          <input type="text" id="adres" name="adres" required>
+        </div>
+        <div>
+          <label for="telefon">Telefon:</label>
+          <input type="text" id="telefon" name="telefon" required pattern="[0-9 ]{10,}">
+        </div>
+      </form>
+      <div class="order-list" id="orders"></div>
+      <div class="order-total" id="total"></div>
+      <div class="action-btns">
+        <button class="siparis-btn" onclick="addToPool()">Siparişi Ekle</button>
+        <button class="siparis-btn" style="background:#1d3557" onclick="finishOrder()">Siparişi Bitir</button>
+        <button class="siparis-btn" style="background:#e09f3e" onclick="showPool()">Sipariş Havuzu</button>
+        <button class="clear-btn" onclick="clearOrders()">Siparişleri Temizle</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sipariş Havuzu Modalı -->
+  <div id="poolModal">
+    <div id="poolModalContent">
+      <h2 style="text-align:center; margin-bottom:18px; color:#26547c;">Günlük Sipariş Havuzu</h2>
+      <div id="poolList"></div>
+      <button class="clear-btn" onclick="showPoolClearPassword()" style="width:100%;margin-top:18px;">Havuzu Temizle</button>
+      <button class="clear-btn" onclick="closePool()" style="width:100%;margin-top:8px;">Kapat</button>
+    </div>
+  </div>
+
+  <!-- Havuz Temizleme Şifre Modalı -->
+  <div id="poolClearPasswordModal">
+    <div style="background:#fff; max-width:350px; margin:100px auto; padding:24px; border-radius:10px; box-shadow:0 0 12px #888;">
+      <h2 style="text-align:center; color:#26547c;">Havuzu Temizle - Şifre Girişi</h2>
+      <input type="password" id="poolClearPasswordInput" placeholder="Şifre" style="width:100%; padding:8px; font-size:1em; margin-top:15px; border:1px solid #bbb; border-radius:5px;">
+      <button onclick="checkPoolClearPassword()" style="width:100%; margin-top:14px;" class="siparis-btn">Onayla</button>
+      <button onclick="closePoolClearPasswordModal()" style="width:100%;margin-top:12px;" class="clear-btn">İptal</button>
+      <div id="poolClearPasswordError" style="color:#e63946; text-align:center; margin-top:10px; display:none;"></div>
+    </div>
+  </div>
+
+  <script>
+    // --- KULLANICI GİRİŞİ ---
+    const users = [
+      { username: "Mehmet", password: "6699" },
+      { username: "Murat", password: "2233" },
+      { username: "Can", password: "1122" }
+    ];
+
+    function showLogin() {
+      document.getElementById('loginModal').style.display = 'block';
+    }
+
+    function hideLogin() {
+      document.getElementById('loginModal').style.display = 'none';
+    }
+
+    function loginUser() {
+      const uname = document.getElementById('username').value.trim();
+      const upass = document.getElementById('userpass').value;
+      const user = users.find(u => u.username.toLowerCase() === uname.toLowerCase() && u.password === upass);
+      if (user) {
+        localStorage.setItem("siparis_user", user.username);
+        hideLogin();
+        document.getElementById('mainContainer').style.display = 'block';
+        document.getElementById('userStatusBar').innerText = `Hoşgeldin, ${user.username}!`;
+        clearOrders(); // Her girişte sipariş temizlenir
+      } else {
+        document.getElementById('loginError').innerText = "Kullanıcı adı veya şifre yanlış!";
+        document.getElementById('loginError').style.display = 'block';
+      }
+    }
+
+    function logoutUser() {
+      localStorage.removeItem("siparis_user");
+      document.getElementById('mainContainer').style.display = 'none';
+      showLogin();
+    }
+
+    // Sayfa yüklenince kontrol et
+    window.onload = function() {
+      const activeUser = localStorage.getItem("siparis_user");
+      if (activeUser) {
+        document.getElementById('mainContainer').style.display = 'block';
+        document.getElementById('userStatusBar').innerHTML = `Hoşgeldin, ${activeUser}! <button onclick="logoutUser()" style="margin-left:12px;" class="clear-btn">Çıkış Yap</button>`;
+      } else {
+        showLogin();
+      }
+      renderOrders();
+    };
+
+    // --- SİPARİŞ SİSTEMİ ---
+    let orders = [];
+    let pool = [];
+
+    function addOrder(name, price) {
+      orders.push({ name, price });
+      renderOrders();
+    }
+
+    function renderOrders() {
+      const ordersDiv = document.getElementById('orders');
+      ordersDiv.innerHTML = orders.map(order =>
+        `<div class="order-item">${order.name} - <span style="font-weight:bold;color:#e63946">${order.price} TL</span></div>`
+      ).join('');
+      const total = orders.reduce((sum, o) => sum + o.price, 0);
+      document.getElementById('total').innerHTML = '<span style="color:#1d3557;font-weight:bold;">Toplam: ' + total + ' TL</span>';
+    }
+
+    function clearOrders() {
+      orders = [];
+      renderOrders();
+      document.getElementById('isim').value = '';
+      document.getElementById('adres').value = '';
+      document.getElementById('telefon').value = '';
+    }
+
+    function addToPool() {
+      const isim = document.getElementById('isim').value.trim();
+      const adres = document.getElementById('adres').value.trim();
+      const telefon = document.getElementById('telefon').value.trim();
+      if (!isim || !adres || !telefon || orders.length === 0) {
+        alert('Lütfen tüm müşteri bilgilerini ve siparişleri doldurun!');
+        return;
+      }
+      const time = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      pool.push({
+        time,
+        isim,
+        adres,
+        telefon,
+        orders: [...orders],
+        toplam: orders.reduce((sum, o) => sum + o.price, 0)
+      });
+      alert('Sipariş havuza eklendi.');
+    }
+
+    function finishOrder() {
+      addToPool();
+      clearOrders();
+    }
+
+    function showPool() {
+      const poolDiv = document.getElementById('poolList');
+      if (pool.length === 0) {
+        poolDiv.innerHTML = '<div style="text-align:center; color:#555;">Bugün hiç sipariş alınmadı.</div>';
+      } else {
+        poolDiv.innerHTML = pool.map(p =>
+          `<div style="padding:10px 0; border-bottom:1px solid #eee;">
+            <div><span style="font-weight:bold; color:#457b9d;">${p.time}</span></div>
+            <div><b>İsim:</b> ${p.isim} <b>Tel:</b> ${p.telefon}</div>
+            <div><b>Adres:</b> ${p.adres}</div>
+            <div>
+              <ul style="margin:5px 0 0 12px; padding:0;">
+                ${p.orders.map(o => `<li>${o.name} - <span style="font-weight:bold;color:#e63946">${o.price} TL</span></li>`).join('')}
+              </ul>
+            </div>
+            <div style="font-weight:bold;color:#1d3557;">Toplam: ${p.toplam} TL</div>
+          </div>`
+        ).join('');
+      }
+      document.getElementById('poolModal').style.display = 'block';
+    }
+
+    function closePool() {
+      document.getElementById('poolModal').style.display = 'none';
+    }
+
+    // Havuzu Temizleme Şifre Fonksiyonları
+    function showPoolClearPassword() {
+      document.getElementById('poolClearPasswordModal').style.display = 'block';
+      document.getElementById('poolClearPasswordInput').value = '';
+      document.getElementById('poolClearPasswordError').style.display = 'none';
+    }
+
+    function closePoolClearPasswordModal() {
+      document.getElementById('poolClearPasswordModal').style.display = 'none';
+    }
+
+    function checkPoolClearPassword() {
+      const input = document.getElementById('poolClearPasswordInput').value;
+      if (input === "3434") {
+        pool = [];
+        closePoolClearPasswordModal();
+        closePool();
+        alert("Sipariş havuzu başarıyla temizlendi!");
+      } else {
+        document.getElementById('poolClearPasswordError').innerText = "Şifre yanlış!";
+        document.getElementById('poolClearPasswordError').style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>
